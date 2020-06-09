@@ -7,8 +7,8 @@ use regex::Regex;
 
 use super::entity_utilization::EntityUtilization;
 
-pub fn parse_file(file: std::path::PathBuf) -> HashMap<String, Entity> {
-    let file_a = File::open(file).expect(&format!("Could not open file {}", file.to_str().unwrap()));
+pub fn parse_file(file: &str) -> HashMap<String, EntityUtilization> {
+    let file_a = File::open(file).expect(&format!("Could not open file {}", file));
     let mut reader = BufReader::new(file_a);
     let mut total_lines = 0;
 
@@ -17,7 +17,7 @@ pub fn parse_file(file: std::path::PathBuf) -> HashMap<String, Entity> {
     parse_utilization_table(reader.by_ref(), &mut total_lines)
 }
 
-pub fn check_file_header(reader: &mut impl BufRead, total_lines: &mut usize) {
+fn check_file_header(reader: &mut impl BufRead, total_lines: &mut usize) {
     let re_cmd = Regex::new("report_utilization.+-hierarchical").unwrap();
     for line_opt in reader.lines() {
         let line = line_opt.unwrap();
@@ -63,7 +63,7 @@ fn check_columns(hdr: &Vec<&str>, req: &[(usize, &str)]) {
     }
 }
 
-fn parse_utilization_entries(reader: &mut impl BufRead, total_lines: &mut usize) -> HashMap<String, Entity> {
+fn parse_utilization_entries(reader: &mut impl BufRead, total_lines: &mut usize) -> HashMap<String, EntityUtilization> {
     let mut parsed_util = HashMap::new();
     let mut parsed_indent = vec![0];
     let mut parsed_path = Vec::new();
@@ -90,13 +90,13 @@ fn parse_utilization_entries(reader: &mut impl BufRead, total_lines: &mut usize)
         }
         let path = parsed_path.join("/") + "/" + entity_name.trim();
 
-        let entity = Entity {
+        let entity = EntityUtilization {
             lut: items[2].trim().parse().expect(&format!("Non-numerical value {} for LUT count", items[2])),
             reg: items[6].trim().parse().expect(&format!("Non-numerical value {} for REG count", items[6])),
             dsp: items[10].trim().parse().expect(&format!("Non-numerical value {} for DSP count", items[10])),
             uram: items[9].trim().parse().expect(&format!("Non-numerical value {} for BRAM count", items[9])),
-            bram18: items[8].trim().parse::<u32>().expect(&format!("Non-numerical value {} for BRAM count", items[8]))
-                + items[7].trim().parse::<u32>().expect(&format!("Non-numerical value {} for BRAM36 count", items[7])) * 2,
+            bram18: items[8].trim().parse::<i32>().expect(&format!("Non-numerical value {} for BRAM count", items[8]))
+                + items[7].trim().parse::<i32>().expect(&format!("Non-numerical value {} for BRAM36 count", items[7])) * 2,
         };
         parsed_util.insert(String::from(path), entity);
 
@@ -106,7 +106,7 @@ fn parse_utilization_entries(reader: &mut impl BufRead, total_lines: &mut usize)
     parsed_util
 }
 
-fn parse_utilization_table(reader: &mut impl BufRead, total_lines: &mut usize) -> HashMap<String, Entity> {
+fn parse_utilization_table(reader: &mut impl BufRead, total_lines: &mut usize) -> HashMap<String, EntityUtilization> {
     for line_opt in reader.lines() {
         let line = line_opt.unwrap();
         *total_lines += 1;
