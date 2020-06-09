@@ -20,7 +20,7 @@
                 }
             },
             "env": {"RUST_LOG": "debug"},
-            "args": ["route_report_utilization.base.rpt", "route_report_utilization.ccsa.rpt"],
+            "args": ["codium_a.rpt", "codium_b.rpt"],
             "cwd": "${workspaceFolder}"
         },
         {
